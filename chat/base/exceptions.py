@@ -19,3 +19,7 @@ class NotFound(BaseCustomException):
 class ValidationError(BaseCustomException):
     status = 400
     default_message = "Validation error"
+
+
+class ChatConfigurationError(Exception):
+    pass

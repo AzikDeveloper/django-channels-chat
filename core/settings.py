@@ -147,6 +147,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CHAT_USER_SESSION_EXPIRATION = 7  # DAYS
 CHAT_DEBUG = False
+CHAT_USER_FIELDS = ['username', 'avatar_url']
 
 try:
     from .local_settings import *

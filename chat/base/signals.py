@@ -6,7 +6,7 @@ from django.db.models.signals import pre_save
 from chat.base.tasks import notification_creator_on_user_update
 from chat.models import Participation
 from chat.rest.serializers import ChatUserSerializer
-from chat.settings import user_fields
+from chat.base.setup import CHAT_USER_FIELDS
 
 BaseUser = get_user_model()
 
@@ -16,7 +16,7 @@ def pre_save_user_model(sender, instance, **kwargs):
     if instance.pk is not None:
         user = BaseUser.objects.get(pk=instance.pk)
         changed = False
-        for field in user_fields:
+        for field in CHAT_USER_FIELDS:
             if getattr(user, field) != getattr(instance, field):
                 changed = True
                 break

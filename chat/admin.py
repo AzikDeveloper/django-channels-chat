@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import *
 from django.contrib.admin import ModelAdmin
-from django.conf import settings
+from chat.base.setup import CHAT_DEBUG
 
 
 @admin.register(Message)
@@ -21,7 +21,7 @@ class MessageAdmin(ModelAdmin):
 @admin.register(ClientSession)
 class ClientSessionAdmin(ModelAdmin):
     list_display = ["user", "expires_at"]
-    if settings.DEBUG:
+    if CHAT_DEBUG:
         list_display += ["secret"]
     list_display += ["id"]
 
@@ -31,7 +31,7 @@ class ClientSessionAdmin(ModelAdmin):
 @admin.register(Notification)
 class NotificationAdmin(ModelAdmin):
     list_display = ["get_client", "data", "id"]
-    readonly_fields = [] if settings.CHAT_DEBUG else ["data"]
+    readonly_fields = [] if CHAT_DEBUG else ["data"]
 
     @admin.display(ordering='client__user', description='User')
     def get_client(self, obj: Notification):

@@ -2,7 +2,7 @@ from channels.db import database_sync_to_async
 from .main import BaseConsumer
 from .dispatch import RequestHandler
 from channels.exceptions import StopConsumer
-from django.conf import settings
+from chat.base.setup import CHAT_DEBUG
 from chat.models import ClientSession
 from chat.models import Participation
 
@@ -10,7 +10,7 @@ from chat.models import Participation
 class ChatConsumer(BaseConsumer):
 
     async def connect(self):
-        if settings.CHAT_DEBUG:
+        if CHAT_DEBUG:
             client_id = dict(self.scope["headers"])[b"client"].decode("utf8")
             client_session = await database_sync_to_async(
                 ClientSession.objects.select_related('user').filter(id=client_id).first

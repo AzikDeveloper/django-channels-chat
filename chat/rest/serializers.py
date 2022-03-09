@@ -5,7 +5,7 @@ from chat.base.pagination import CursorSetPagination
 from django.conf import settings
 from django.urls import reverse
 from chat.base.utils import BaseUser
-from chat.settings import user_fields
+from chat.base.setup import CHAT_USER_FIELDS
 
 
 class ClientSessionSerializer(serializers.ModelSerializer, ModelSerializerAsyncMixin):
@@ -44,7 +44,7 @@ class MessageSerializer(serializers.ModelSerializer, ModelSerializerAsyncMixin):
 class ChatUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseUser
-        fields = user_fields
+        fields = CHAT_USER_FIELDS
 
 
 class ChatListSerializer(serializers.ModelSerializer):
