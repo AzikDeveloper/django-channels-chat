@@ -7,8 +7,9 @@ from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth.models import User
 
-BaseUser = get_user_model()
+BaseUser: User = get_user_model()
 
 
 @database_sync_to_async

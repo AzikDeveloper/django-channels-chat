@@ -1,4 +1,4 @@
-from chat.base.async_adapters import AsyncModelManager
+from chat.base.async_adapters import AsyncModelManager, ModelAsyncMixin
 from django.db import models
 from .base.utils import generate_session_secret, create_expires_at
 from django.dispatch import receiver
@@ -8,7 +8,7 @@ from channels.db import database_sync_to_async
 from chat.base.utils import BaseUser, get_object_or_not_found
 
 
-class ClientSession(models.Model):
+class ClientSession(models.Model, ModelAsyncMixin):
     user = models.ForeignKey(BaseUser, related_name='client_session', on_delete=models.CASCADE)
     secret = models.CharField(max_length=64, default=generate_session_secret)
     expires_at = models.DateTimeField(default=create_expires_at)
@@ -19,18 +19,13 @@ class ClientSession(models.Model):
     def is_not_expired(self):
         return self.expires_at >= timezone.now()
 
-    async def delete_async(self, **kwargs):
-        await database_sync_to_async(
-            super(ClientSession, self).delete(**kwargs)
-        )()
 
-
-class Participation(models.Model):
+class Participation(models.Model, ModelAsyncMixin):
     user = models.ForeignKey(BaseUser, related_name='user_participation', on_delete=models.SET_NULL, null=True)
     chat = models.ForeignKey('chat.Chat', related_name='chat_participation', on_delete=models.CASCADE)
 
 
-class Chat(models.Model):
+class Chat(models.Model, ModelAsyncMixin):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     users_ids = models.JSONField(null=True)
     users = models.ManyToManyField(BaseUser, related_name='user_chat', through=Participation)
@@ -59,7 +54,7 @@ class Ban(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
 
-class Message(models.Model):
+class Message(models.Model, ModelAsyncMixin):
     sender = models.ForeignKey(BaseUser, related_name='sent_message', on_delete=models.SET_NULL, null=True)
     receiver = models.ForeignKey(BaseUser, related_name='received_message', on_delete=models.SET_NULL, null=True)
     chat = models.ForeignKey('chat.Chat', related_name='chat_message', on_delete=models.CASCADE)

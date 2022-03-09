@@ -1,5 +1,5 @@
 from chat.models import ClientSession, Chat, Message
-from chat.base.async_adapters import AsyncModelSerializer
+from chat.base.async_adapters import ModelSerializerAsyncMixin
 from rest_framework import serializers
 from chat.base.pagination import CursorSetPagination
 from django.conf import settings
@@ -8,7 +8,7 @@ from chat.base.utils import BaseUser
 from chat.settings import user_fields
 
 
-class ClientSessionSerializer(AsyncModelSerializer):
+class ClientSessionSerializer(serializers.ModelSerializer, ModelSerializerAsyncMixin):
     class Meta:
         model = ClientSession
         fields = [
@@ -19,7 +19,7 @@ class ClientSessionSerializer(AsyncModelSerializer):
         ]
 
 
-class MessageSerializer(AsyncModelSerializer):
+class MessageSerializer(serializers.ModelSerializer, ModelSerializerAsyncMixin):
     class Meta:
         model = Message
         fields = (

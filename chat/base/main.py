@@ -28,8 +28,8 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
 class BaseHandler:
     queryset = None
     """
-        agar object related_field lari select_related yoki prefetch_related lar bilan olinmasa,
-         usha attributelariga murojat buganda database query olyapdi. bu channels=3.0.4 dagi bug bulishi mumkin
+        You should specify select_related and prefetch_related if you want use the relational fields.
+        If you dont do it, then it makes a synchronous call to the db.
     """
     lookup_field = 'id'
     lookup_kwarg = 'id'
