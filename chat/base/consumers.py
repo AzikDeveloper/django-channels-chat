@@ -11,9 +11,9 @@ class ChatConsumer(BaseConsumer):
 
     async def connect(self):
         if settings.CHAT_DEBUG:
-            user_id = dict(self.scope["headers"])[b"user"].decode("utf8")
+            client_id = dict(self.scope["headers"])[b"client"].decode("utf8")
             client_session = await database_sync_to_async(
-                ClientSession.objects.select_related('user').filter(user_id=user_id).first
+                ClientSession.objects.select_related('user').filter(id=client_id).first
             )()
             await self.perform_authentication(client_session)
 

@@ -1,16 +1,14 @@
 import asyncio
 
-from .utils import catch_exception, Notify
+from .utils import catch_exception
 import inspect
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
 from .exceptions import NotFound
-from .exceptions import PermissionDenied, ValidationError
+from .exceptions import PermissionDenied
 from channels.db import database_sync_to_async
 from chat.base import status as _status
-from chat.models import Notification
-from chat.models import ClientSession
-import threading
+from chat.base.tasks import notification_creator_async
 
 
 class BaseConsumer(AsyncJsonWebsocketConsumer):
@@ -53,14 +51,6 @@ class BaseHandler:
                 raise PermissionDenied("Authentication required!")
 
         await self.main(self.request)
-        # await self.make_response(response)
-
-    # async def make_response(self, response):
-    #     if response:
-    #         notify = Notify(data=response.data)
-    #         await self.respond(notify.as_success_response)
-    #         await self.send(response.other, notify.as_notify)
-    #         await self.send(response.me, notify.as_notify, exclude_current=True)
 
     async def main(self, request):
         assert True, (
@@ -101,22 +91,10 @@ class BaseHandler:
         result_data['data'] = data
         await self.consumer.send_json(result_data)
 
-    async def task_notification_creator(self, user, data, exclude_current):
-        clients = ClientSession.objects.filter(user=user)
-        if exclude_current:
-            clients = clients.exclude(id=self.consumer.client_session.id)
-
-        await database_sync_to_async(clients._fetch_all)()
-
-        notifications = []
-        for client in clients:
-            notifications.append(Notification(client=client, data=data))
-        await database_sync_to_async(
-            Notification.objects.bulk_create
-        )(notifications)
-
     async def create_notifications(self, user, data, exclude_current):
-        asyncio.get_event_loop().create_task(self.task_notification_creator(user, data, exclude_current))
+        asyncio.get_event_loop().create_task(
+            notification_creator_async(user, data, self.consumer.client_session if exclude_current else None)
+        )
 
     async def send(self, user, data, exclude=None, exclude_current=False):
         if exclude is None:
