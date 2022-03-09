@@ -8,7 +8,7 @@ Chat app built with django channels
 4. enjoy!
 
 
-## Features
+## Current features
 1. Creating chat
 2. Deleting chat
 3. Sending message
