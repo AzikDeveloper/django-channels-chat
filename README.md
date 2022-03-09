@@ -6,3 +6,5 @@ Chat app built with django channels
 2. Create a new virtualenv environment.
 3. install requirements.
 4. enjoy!
+
+## Documentation is coming soon!
