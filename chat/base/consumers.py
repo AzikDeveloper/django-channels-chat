@@ -2,9 +2,9 @@ from channels.db import database_sync_to_async
 from .main import BaseConsumer
 from .dispatch import RequestHandler
 from channels.exceptions import StopConsumer
-from .utils import BaseUser
 from django.conf import settings
 from chat.models import ClientSession
+from chat.models import Participation
 
 
 class ChatConsumer(BaseConsumer):
@@ -16,32 +16,20 @@ class ChatConsumer(BaseConsumer):
                 ClientSession.objects.select_related('user').filter(id=client_id).first
             )()
             await self.perform_authentication(client_session)
-
         await self.accept()
 
     async def disconnect(self, close_code):
-        # if self.scope['user'].is_authenticated:
-        #     await self.channel_layer.group_discard(
-        #         self.room_group_name,
-        #         self.channel_name
-        #     )
-        #     await self.change_online(delta=-1)
-        raise StopConsumer()
+        if self.scope['user'].is_authenticated:
+            self.client_session.online = False
+            await self.client_session.save_async()
 
-    # async def change_online(self, delta):
-    #     user = self.scope["user"]
-    #     user.online_count += delta
-    #     await database_sync_to_async(user.save)()
-    #
-    #     if (user.online_count == 0 and delta == -1) or (user.online_count == 1 and delta == 1):
-    #         content = {
-    #             'action': 'chat__change_online',
-    #             'data': {
-    #                 'online': bool(user.online_count)
-    #             }
-    #         }
-    #         handler = RequestHandler(content, self)
-    #         await handler.handle(internal_request=True)
+            online_clients = await database_sync_to_async(
+                ClientSession.objects.filter(user=self.scope['user'], online=True).exists
+            )()
+            if not online_clients:
+                await self.change_online(False)
+
+        raise StopConsumer()
 
     async def receive_json(self, content, **kwargs):
         try:
@@ -52,7 +40,7 @@ class ChatConsumer(BaseConsumer):
             raise error
 
     async def group_receive(self, event):
-        if not (self.channel_name in event.get('exclude')):
+        if not (self.client_session.id in event.get('exclude_clients')):
             content = event['content']
             await self.send_json(content)
 
@@ -66,3 +54,47 @@ class ChatConsumer(BaseConsumer):
             self.room_group_name,
             self.channel_name
         )
+        self.client_session.online = True
+        await self.client_session.save_async()
+
+        online_clients = await database_sync_to_async(
+            ClientSession.objects.filter(user=self.scope['user'], online=True).exclude(
+                id=self.client_session.id).exists
+        )()
+        if not online_clients:
+            await self.change_online(True)
+
+    async def change_online(self, is_online):
+        self.scope['user'].online = is_online
+        await database_sync_to_async(
+            self.scope['user'].save
+        )()
+
+        clients_datas = await database_sync_to_async(
+            Participation.objects.filter(chat__users__in=[self.scope['user']]).distinct('user').values_list
+        )('user', 'chat__id', )
+        await database_sync_to_async(
+            clients_datas._fetch_all
+        )()
+
+        sent_users = []
+        for client_data in clients_datas:
+            user_id, chat_id = client_data[0], client_data[1]
+            data = {
+                'action': 'chat__change_online',
+                'type': 'notify',
+                'data': {
+                    'id': chat_id,
+                    'online': is_online
+                }
+            }
+            if user_id not in sent_users and user_id != self.scope['user'].id:
+                await self.channel_layer.group_send(
+                    f'user_{user_id}',
+                    {
+                        'type': 'group.receive',
+                        'content': data,
+                        'exclude_clients': []
+                    }
+                )
+                sent_users.append(user_id)

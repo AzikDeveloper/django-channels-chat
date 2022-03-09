@@ -9,6 +9,7 @@ from .exceptions import PermissionDenied
 from channels.db import database_sync_to_async
 from chat.base import status as _status
 from chat.base.tasks import notification_creator_async
+from chat.models import ClientSession
 
 
 class BaseConsumer(AsyncJsonWebsocketConsumer):
@@ -16,7 +17,7 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
         super().__init__(*args, **kwargs)
         self.room_name = 'unauthorized'
         self.room_group_name = 'unauthorized_group'
-        self.client_session = None
+        self.client_session: ClientSession = None
 
     def __getattribute__(self, name):
         value = object.__getattribute__(self, name)
@@ -101,7 +102,7 @@ class BaseHandler:
             exclude = []
 
         if exclude_current:
-            exclude += [self.consumer.channel_name]
+            exclude += [self.consumer.client_session.id]
 
         content = {
             'action': self.request.action,
@@ -113,7 +114,7 @@ class BaseHandler:
             {
                 'type': 'group.receive',
                 'content': content,
-                'exclude': exclude
+                'exclude_clients': exclude
             }
         )
         await self.create_notifications(user, content, exclude_current)

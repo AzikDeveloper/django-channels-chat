@@ -11,14 +11,14 @@ class ModelSerializerAsyncMixin:
     async def is_valid_async(self, raise_exception=False):
         try:
             await database_sync_to_async(
-                super(ModelSerializerAsyncMixin, self).is_valid
+                super(self.__class__, self).is_valid
             )(raise_exception=raise_exception)
         except _ValidationError:
             raise ValidationError(self.errors) if raise_exception else None
 
     async def save_async(self, *args, **kwargs):
         return await database_sync_to_async(
-            super(ModelSerializerAsyncMixin, self).save
+            super(self.__class__, self).save
         )(*args, **kwargs)
 
 
@@ -50,16 +50,16 @@ class AsyncModelManager(models.Manager):
 class ModelAsyncMixin:
     async def delete_async(self, **kwargs):
         return await database_sync_to_async(
-            super(ModelAsyncMixin, self).delete(**kwargs)
-        )()
+            super(self.__class__, self).delete
+        )(**kwargs)
 
     async def save_async(self, **kwargs):
         return await database_sync_to_async(
-            super(ModelAsyncMixin, self).save(**kwargs)
-        )()
+            super(self.__class__, self).save
+        )(**kwargs)
 
     @staticmethod
     async def create_async(**kwargs):
         return await database_sync_to_async(
-            super().objects.create(**kwargs)
-        )()
+            super().objects.create
+        )(**kwargs)
