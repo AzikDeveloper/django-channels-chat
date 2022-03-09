@@ -3,7 +3,6 @@ import traceback
 from channels.exceptions import StopConsumer
 from django.core.exceptions import ObjectDoesNotExist
 from .exceptions import NotFound
-from dataclasses import dataclass
 from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from django.conf import settings
@@ -83,9 +82,3 @@ class WRequest:
 
 def generate_session_secret():
     return secrets.token_urlsafe(32)
-
-# @dataclass
-# class Response:
-#     other: BaseUser
-#     me: BaseUser
-#     data: dict

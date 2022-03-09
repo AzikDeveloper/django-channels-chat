@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-bjl6cyt4fzj(o#x@yyekq+exu(t6$k0&%0i0g12*a#t52y*sbe
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+HOST = "http://192.168.101.148:1234"
+AUTH_USER_MODEL = 'app.BaseUser'
 # Application definition
 
 INSTALLED_APPS = [
