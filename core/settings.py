@@ -145,6 +145,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "mediafiles")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# CHAT SETTINGS
 CHAT_USER_SESSION_EXPIRATION = 7  # DAYS
 CHAT_DEBUG = False
 CHAT_USER_FIELDS = ['username', 'avatar_url']
