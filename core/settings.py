@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os.path
 from pathlib import Path
+from django.db import models
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,7 +43,8 @@ INSTALLED_APPS = [
     'drf_yasg',
 
     'chat',
-    'app'
+    'app',
+    'querycount'
 ]
 
 MIDDLEWARE = [
@@ -53,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'querycount.middleware.QueryCountMiddleware'
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -148,7 +151,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CHAT SETTINGS
 CHAT_USER_SESSION_EXPIRATION = 7  # DAYS
 CHAT_DEBUG = False
-CHAT_USER_FIELDS = ['username', 'avatar_url']
+CHAT_USER_FIELDS = {
+    'id': models.BigIntegerField,
+    'username': models.CharField,
+    'avatar': models.CharField
+}
 
 try:
     from .local_settings import *

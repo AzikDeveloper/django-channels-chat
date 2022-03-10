@@ -1,9 +1,7 @@
 from chat.models import ClientSession, Chat, Message
 from chat.base.async_adapters import ModelSerializerAsyncMixin
 from rest_framework import serializers
-from chat.base.pagination import CursorSetPagination
-from django.conf import settings
-from django.urls import reverse
+
 from chat.base.utils import BaseUser
 from chat.base.setup import CHAT_USER_FIELDS
 
@@ -44,48 +42,40 @@ class MessageSerializer(serializers.ModelSerializer, ModelSerializerAsyncMixin):
 class ChatUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseUser
-        fields = CHAT_USER_FIELDS
+        fields = list(CHAT_USER_FIELDS.keys()) + ['online']
 
 
 class ChatListSerializer(serializers.ModelSerializer):
-    next_messages_link = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
-    messages = serializers.SerializerMethodField()
+    message_infos = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = (
             "id",
             "user",
-            "messages",
-            "next_messages_link"
+            "message_infos"
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._final_link = None
 
-    def get_messages(self, chat):
-        paginator = CursorSetPagination()
-        messages = paginator.paginate_queryset(chat.message.all(), self.context.get('request'))
-        self.make_next_url(paginator, chat)
+    @staticmethod
+    def get_user(chat):
+        user_fields = {field: getattr(chat, f'user_{field}') for field in CHAT_USER_FIELDS.keys()}
+        return user_fields
 
-        return MessageSerializer(messages, many=True).data
-
-    def make_next_url(self, paginator, chat):
-        base_message_pagination_url = settings.HOST + reverse('chat:message-list', args=[chat.id])
-        link: str = paginator.get_next_link()
-        cursor = link.split('cursor=')[1] if link else ""
-        next_link = base_message_pagination_url + '?cursor=' + cursor
-        self._final_link = next_link
-
-    def get_next_messages_link(self, chat):
-        return self._final_link
-
-    def get_user(self, chat):
-        current_user = self.context.get('request').user
-        user = chat.users.exclude(user=current_user).first()
-        return ChatUserSerializer(user).data
+    @staticmethod
+    def get_message_infos(chat):
+        return {
+            'last_message': {
+                'text': chat.last_message_text,
+                'sender': chat.last_message_sender,
+                'seen': chat.last_message_seen
+            },
+            'unseen_messages_count': chat.unseen_messages_count
+        }
 
 
 class ChatCreateDetailSerializer(serializers.ModelSerializer):
@@ -113,3 +103,11 @@ class ChatCreateDetailSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_next_messages_link(chat):
         return None
+
+
+class NotificationListSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    data = serializers.JSONField()
+
+    class Meta:
+        fields = ['id', 'data']

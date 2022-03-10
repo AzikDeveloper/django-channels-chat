@@ -75,3 +75,7 @@ def set_message_edited(sender: Message, instance: Message, **kwargs):
 class Notification(models.Model):
     client = models.ForeignKey('chat.ClientSession', related_name='client_action', on_delete=models.CASCADE)
     data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("client__id", "id")

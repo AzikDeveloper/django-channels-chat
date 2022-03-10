@@ -54,12 +54,9 @@ class ChatConsumer(BaseConsumer):
             self.room_group_name,
             self.channel_name
         )
-        self.client_session.online = True
-        await self.client_session.save_async()
 
         online_clients = await database_sync_to_async(
-            ClientSession.objects.filter(user=self.scope['user'], online=True).exclude(
-                id=self.client_session.id).exists
+            ClientSession.objects.filter(user=self.scope['user'], online=True).exists
         )()
         if not online_clients:
             await self.change_online(True)
@@ -94,7 +91,7 @@ class ChatConsumer(BaseConsumer):
                     {
                         'type': 'group.receive',
                         'content': data,
-                        'exclude_clients': []
+                        'exclude_clients': [self.client_session.id]
                     }
                 )
                 sent_users.append(user_id)

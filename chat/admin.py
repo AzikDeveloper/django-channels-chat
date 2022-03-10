@@ -28,6 +28,11 @@ class ClientSessionAdmin(ModelAdmin):
     readonly_fields = ["secret"]
 
 
+@admin.register(Participation)
+class ClientSessionAdmin(ModelAdmin):
+    list_display = ["user", "chat"]
+
+
 @admin.register(Notification)
 class NotificationAdmin(ModelAdmin):
     list_display = ["get_client", "data", "id"]
