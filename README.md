@@ -1,5 +1,5 @@
 # django-channels-chat
-Chat app built with django channels
+Asynchronous chat app built with django channels
 
 ## Usage
 1. Clone this repository.
