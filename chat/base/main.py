@@ -73,7 +73,7 @@ class BaseHandler:
         except ObjectDoesNotExist as e:
             raise NotFound(e)
 
-    async def respond(self, data=None, status=None):
+    async def respond(self, data=None, status=_status.SUCCESS_RESPONSE):
         if data is None:
             data = {}
 
@@ -88,6 +88,7 @@ class BaseHandler:
             result_data['status'] = 'fail'
         elif status == _status.NOTIFY:
             result_data['type'] = 'notify'
+            result_data['status'] = 'success'
 
         result_data['data'] = data
         await self.consumer.send_json(result_data)

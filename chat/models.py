@@ -27,24 +27,27 @@ class Participation(models.Model, ModelAsyncMixin):
 
 class Chat(models.Model, ModelAsyncMixin):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    users_ids = models.JSONField(null=True)
     users = models.ManyToManyField(BaseUser, related_name='user_chat', through=Participation)
 
-    def has_user(self, user):
-        return user.id in self.users_ids
+    def __str__(self):
+        return " | ".join(list(self.users.values_list("username", flat=True)))
+
+    async def has_user(self, user_id):
+        return await database_sync_to_async(
+            self.users.filter(id=user_id).exists
+        )()
 
     @classmethod
-    async def has_chat(cls, *users):
+    async def has_chat(cls, users_ids: list):
         chats = Chat.objects.all()
-        for user in users:
+        for user in users_ids:
             chats = chats.filter(users__in=[user])
         return await database_sync_to_async(chats.exists)()
 
-    async def other_user(self, this_user):
-        users = self.users_ids
-        users.remove(this_user.id)
-
-        return await get_object_or_not_found(BaseUser, id=users[0])
+    async def other_user(self, this_user_id):
+        return await database_sync_to_async(
+            self.users.exclude(id=this_user_id).first
+        )()
 
 
 class Ban(models.Model):

@@ -29,8 +29,9 @@ class ClientSessionAdmin(ModelAdmin):
 
 
 @admin.register(Participation)
-class ClientSessionAdmin(ModelAdmin):
+class ParticipationAdmin(ModelAdmin):
     list_display = ["user", "chat"]
+    search_fields = ["user"]
 
 
 @admin.register(Notification)
@@ -43,6 +44,11 @@ class NotificationAdmin(ModelAdmin):
         return obj.client.user
 
 
+class ParticipationTabular(admin.TabularInline):
+    model = Participation
+    extra = 0
+
+
 @admin.register(Chat)
 class ChatAdmin(ModelAdmin):
-    pass
+    inlines = [ParticipationTabular]

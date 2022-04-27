@@ -74,7 +74,7 @@ class MessageSendHandler(BaseHandler):
         await serializer.is_valid_async(raise_exception=True)
 
         chat: Chat = await self.get_object()
-        receiver: BaseUser = await chat.other_user(this_user=request.user)
+        receiver: BaseUser = await chat.other_user(request.user.id)
         await serializer.save_async(sender=request.user, receiver=receiver)
 
         await self.respond(serializer.data)
@@ -83,7 +83,7 @@ class MessageSendHandler(BaseHandler):
 
     async def check_permissions(self) -> bool:
         chat: Chat = await self.get_object()
-        return chat.has_user(self.request.user)
+        return await chat.has_user(self.request.user.id)
 
 
 class MessageSeeHandler(BaseHandler):

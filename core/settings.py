@@ -91,17 +91,6 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "django-channels-chat",
-        "USER": "postgres",
-        "PASSWORD": "angorelegan2002",
-        "HOST": "localhost",
-        "PORT": "5432",
-        "ATOMIC_REQUESTS": True,
-    }
-}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
