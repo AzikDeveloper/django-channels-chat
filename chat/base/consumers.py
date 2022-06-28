@@ -5,10 +5,12 @@ from channels.exceptions import StopConsumer
 from chat.base.setup import CHAT_DEBUG
 from chat.models import ClientSession
 from chat.models import Participation
+from .utils import count_query, debug_request
 
 
 class ChatConsumer(BaseConsumer):
 
+    @count_query
     async def connect(self):
         if CHAT_DEBUG:
             client_id = dict(self.scope["headers"])[b"client"].decode("utf8")
@@ -18,6 +20,7 @@ class ChatConsumer(BaseConsumer):
             await self.perform_authentication(client_session)
         await self.accept()
 
+    @count_query
     async def disconnect(self, close_code):
         if self.scope['user'].is_authenticated:
             self.client_session.online = False
@@ -31,6 +34,8 @@ class ChatConsumer(BaseConsumer):
 
         raise StopConsumer()
 
+    @debug_request
+    @count_query
     async def receive_json(self, content, **kwargs):
         try:
             handler = RequestHandler(content, self)

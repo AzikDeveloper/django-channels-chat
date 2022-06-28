@@ -1,6 +1,5 @@
 from django.conf import settings
 from .exceptions import ChatConfigurationError
-from django.db import models
 
 CHAT_USER_FIELDS = {}
 CHAT_USER_SESSION_EXPIRATION = 30

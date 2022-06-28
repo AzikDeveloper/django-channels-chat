@@ -4,7 +4,7 @@ from chat.base.async_adapters import authenticate_async
 from chat.models import ClientSession
 from chat.base import status
 from chat.base.exceptions import ValidationError
-from chat.base.utils import BaseUser
+from chat.base.utils import BaseUser, get_object_or_not_found
 from chat.models import Participation, Chat, Message
 
 
@@ -21,19 +21,19 @@ class CreateClientSessionHandler(BaseHandler):
             client_session: ClientSession = await serializer.save_async()
 
             await self.consumer.perform_authentication(client_session)
-            await self.respond(data=serializer.data, status=status.SUCCESS_RESPONSE)
+            await self.respond(data=serializer.data)
         else:
             raise ValidationError("Incorrect authentication credentials!")
 
 
 class AuthorizationHandler(BaseHandler):
     authentication_required = False
-    queryset = ClientSession.objects.select_related('user')
-    lookup_field = "secret"
-    lookup_kwarg = "secret"
 
     async def main(self, request) -> None:
-        client_session: ClientSession = await self.get_object()
+        client_session: ClientSession = await get_object_or_not_found(
+            ClientSession, select_related=["user"],
+            secret=request.data.get("secret")
+        )
         if client_session.is_not_expired():
             await self.consumer.perform_authentication(client_session)
             await self.respond(status=status.SUCCESS_RESPONSE)
@@ -62,7 +62,7 @@ class ChatCreateHandler(BaseHandler):
 
     async def check_permissions(self) -> bool:
         user: BaseUser = await self.get_object()
-        return not await Chat.has_chat(self.request.user, user)
+        return not await Chat.has_chat(self.request.user.id, user.id)
 
 
 class MessageSendHandler(BaseHandler):
@@ -78,8 +78,8 @@ class MessageSendHandler(BaseHandler):
         await serializer.save_async(sender=request.user, receiver=receiver)
 
         await self.respond(serializer.data)
-        await self.send(receiver, serializer.data)
-        await self.send(request.user, serializer.data, exclude_current=True)
+        await self.send(receiver.id, serializer.data)
+        await self.send(request.user.id, serializer.data, exclude_current=True)
 
     async def check_permissions(self) -> bool:
         chat: Chat = await self.get_object()
@@ -116,7 +116,7 @@ class MessageEditHandler(BaseHandler):
         await message.save_async()
 
         data = {'id': message.id, 'text': message.text, 'edited': message.edited}
-        await self.respond(data, status.SUCCESS_RESPONSE)
+        await self.respond(data)
         await self.send(message.receiver, data)
         await self.send(message.sender, data, exclude_current=True)
 
@@ -135,13 +135,13 @@ class MessageDeleteHandler(BaseHandler):
         await message.delete_async()
         data = {'id': message_id}
 
-        await self.respond(data, status.SUCCESS_RESPONSE)
+        await self.respond(data)
         await self.send(receiver, data, exclude_current=request.user == receiver)
         await self.send(sender, data, exclude_current=request.user == sender)
 
     async def check_permissions(self) -> bool:
         message: Message = await self.get_object()
-        return self.request.user in [message.sender, message.receiver]
+        return self.request.user in (message.sender, message.receiver)
 
 
 class ChatDeleteHandler(BaseHandler):
@@ -154,10 +154,18 @@ class ChatDeleteHandler(BaseHandler):
 
         data = {'id': chat_id}
 
-        await self.respond(data, status.SUCCESS_RESPONSE)
+        await self.respond(data)
         for chat_user in chat_users:
             await self.send(chat_user, data, exclude_current=chat_user == request.user)
 
     async def check_permissions(self) -> bool:
         chat: Chat = await self.get_object()
-        return chat.has_user(self.request.user)
+        return await chat.has_user(self.request.user.id)
+
+
+class AboutMeHandler(BaseHandler):
+    authentication_required = False
+
+    async def main(self, request) -> None:
+        data = {'user': str(request.user)}
+        return await self.respond(data)

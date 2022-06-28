@@ -34,16 +34,6 @@ class ParticipationAdmin(ModelAdmin):
     search_fields = ["user"]
 
 
-@admin.register(Notification)
-class NotificationAdmin(ModelAdmin):
-    list_display = ["get_client", "data", "id"]
-    readonly_fields = [] if CHAT_DEBUG else ["data"]
-
-    @admin.display(ordering='client__user', description='User')
-    def get_client(self, obj: Notification):
-        return obj.client.user
-
-
 class ParticipationTabular(admin.TabularInline):
     model = Participation
     extra = 0

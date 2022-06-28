@@ -1,5 +1,3 @@
-import asyncio
-
 from .utils import catch_exception
 import inspect
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -8,7 +6,6 @@ from .exceptions import NotFound
 from .exceptions import PermissionDenied
 from channels.db import database_sync_to_async
 from chat.base import status as _status
-from chat.base.tasks import notification_creator_async
 from chat.models import ClientSession
 
 
@@ -43,14 +40,8 @@ class BaseHandler:
         self.consumer = consumer
 
     async def handle(self):
-        permission = await self.check_permissions()
-        if not permission:
-            raise PermissionDenied()
-
-        if self.authentication_required:
-            if not self.consumer.scope['user'].is_authenticated:
-                raise PermissionDenied("Authentication required!")
-
+        await self.check_authentication()
+        await self._check_permissions()
         await self.main(self.request)
 
     async def main(self, request):
@@ -58,9 +49,19 @@ class BaseHandler:
             "main() must be implemented"
         )
 
+    async def _check_permissions(self):
+        permission = await self.check_permissions()
+        if not permission:
+            raise PermissionDenied()
+
     async def check_permissions(self):
         """should be implemented"""
         return True
+
+    async def check_authentication(self):
+        if self.authentication_required:
+            if not self.consumer.scope['user'].is_authenticated:
+                raise PermissionDenied("Authentication required!")
 
     async def get_object(self, cached=True):
         try:
@@ -93,12 +94,7 @@ class BaseHandler:
         result_data['data'] = data
         await self.consumer.send_json(result_data)
 
-    async def create_notifications(self, user, data, exclude_current):
-        asyncio.get_event_loop().create_task(
-            notification_creator_async(user, data, self.consumer.client_session if exclude_current else None)
-        )
-
-    async def send(self, user, data, exclude=None, exclude_current=False):
+    async def send(self, user_id, data, exclude=None, exclude_current=False):
         if exclude is None:
             exclude = []
 
@@ -111,11 +107,10 @@ class BaseHandler:
             'data': data
         }
         await self.consumer.channel_layer.group_send(
-            f'user_{user.id}',
+            f'user_{user_id}',
             {
                 'type': 'group.receive',
                 'content': content,
                 'exclude_clients': exclude
             }
         )
-        await self.create_notifications(user, content, exclude_current)

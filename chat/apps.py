@@ -6,7 +6,6 @@ class ChatConfig(AppConfig):
     name = 'chat'
 
     def ready(self):
-        import chat.base.signals
         from chat.base.utils import BaseUser
         from chat.models import ClientSession
 

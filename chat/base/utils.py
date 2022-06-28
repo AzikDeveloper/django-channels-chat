@@ -8,14 +8,23 @@ from channels.db import database_sync_to_async
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.db import connections
+import json
 
 BaseUser: User = get_user_model()
 
 
-@database_sync_to_async
-def get_object_or_not_found(model_klass, **filter_kwargs):
+async def get_object_or_not_found(model_klass, select_related: list = None, **filter_kwargs):
     try:
-        return model_klass.objects.get(**filter_kwargs)
+        if select_related is not None:
+            return await database_sync_to_async(
+                model_klass.objects.select_related(*select_related).get
+            )(**filter_kwargs)
+        else:
+            return await database_sync_to_async(
+                model_klass.objects.get
+            )(**filter_kwargs)
+
     except ObjectDoesNotExist as e:
         raise NotFound(e)
 
@@ -83,3 +92,37 @@ class WRequest:
 
 def generate_session_secret():
     return secrets.token_urlsafe(32)
+
+
+class Bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def count_query(func):
+    async def wrapper(*args, **kwargs):
+        result = await func(*args, **kwargs)
+        total_queries_count = sum(len(c.queries) for c in connections.all())
+        print(Bcolors.OKBLUE + f"scope: {func.__name__}")
+        print(Bcolors.OKBLUE + str(total_queries_count) + Bcolors.ENDC)
+        return result
+
+    return wrapper
+
+
+def debug_request(receiver_func):
+    async def wrapper(*args, **kwargs):
+        print(Bcolors.OKGREEN, "-" * 45, Bcolors.ENDC)
+        print(Bcolors.BOLD, Bcolors.OKGREEN, json.dumps(args[1], indent=4), Bcolors.ENDC)
+        print(Bcolors.OKGREEN, "-" * 45, Bcolors.ENDC)
+        result = await receiver_func(*args, **kwargs)
+        return result
+
+    return wrapper

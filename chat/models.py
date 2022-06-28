@@ -8,6 +8,19 @@ from channels.db import database_sync_to_async
 from chat.base.utils import BaseUser, get_object_or_not_found
 
 
+def id_getter(f):
+    async def wrapper(self, *args, **kwargs):
+        id_list = []
+        for arg in args:
+            if isinstance(arg, int):
+                id_list.append(arg)
+            else:
+                id_list.append(getattr(arg, "id"))
+        return await f(self, *id_list, **kwargs)
+
+    return wrapper
+
+
 class ClientSession(models.Model, ModelAsyncMixin):
     user = models.ForeignKey(BaseUser, related_name='client_session', on_delete=models.CASCADE)
     secret = models.CharField(max_length=64, default=generate_session_secret)
@@ -32,15 +45,16 @@ class Chat(models.Model, ModelAsyncMixin):
     def __str__(self):
         return " | ".join(list(self.users.values_list("username", flat=True)))
 
+    @id_getter
     async def has_user(self, user_id):
         return await database_sync_to_async(
             self.users.filter(id=user_id).exists
         )()
 
     @classmethod
-    async def has_chat(cls, users_ids: list):
+    async def has_chat(cls, user1_id, user2_id):
         chats = Chat.objects.all()
-        for user in users_ids:
+        for user in (user1_id, user2_id):
             chats = chats.filter(users__in=[user])
         return await database_sync_to_async(chats.exists)()
 
@@ -73,12 +87,3 @@ def set_message_edited(sender: Message, instance: Message, **kwargs):
         message = Message.objects.get(id=instance.id)
         if message.text != instance.text:
             instance.edited = True
-
-
-class Notification(models.Model):
-    client = models.ForeignKey('chat.ClientSession', related_name='client_action', on_delete=models.CASCADE)
-    data = models.JSONField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ("client__id", "id")

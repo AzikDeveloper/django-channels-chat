@@ -1,6 +1,6 @@
 from rest_framework import generics
 from rest_framework.views import APIView
-from chat.models import Chat, Message, Notification, ClientSession, Participation
+from chat.models import Chat, Message, ClientSession, Participation
 from chat.rest import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
@@ -57,18 +57,3 @@ class MessageListView(generics.ListAPIView):
             return queryset.filter(chat=chat)
         else:
             raise PermissionDenied()
-
-
-class NotificationsListView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        client = get_object_or_404(ClientSession, id=request.data.get('client'), user=request.user)
-        last_online = self.request.data.get('last_online')
-        if last_online:
-            date = datetime.fromtimestamp(int(last_online))
-        else:
-            raise ValidationError("last_online and client should be provided")
-
-        queryset = Notification.objects.filter(client_id=client, created_at__gte=date)
-        return Response(serializers.NotificationListSerializer(queryset, many=True).data)

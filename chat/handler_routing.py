@@ -9,4 +9,5 @@ handlers = {
     'message__edit': MessageEditHandler,
     'message__delete': MessageDeleteHandler,
     'chat__delete': ChatDeleteHandler,
+    'about_me': AboutMeHandler
 }
